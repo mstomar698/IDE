@@ -1,0 +1,92 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:12-alpine
+    container_name: postgres_db_ide
+    ports:
+      - 5432:5432
+    restart: always
+    env_file: ./postgres-db/.env
+    networks:
+      - backend-network
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  nginx:
+    build:
+      context: .
+      dockerfile: extras/Dockerfile.nginx
+    container_name: nginx_ide
+    ports:
+      - 80:80
+    volumes:
+      - ./extras/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - auth
+      - backend
+    restart: always
+    networks:
+      - backend-network
+
+  codenode:
+    build:
+      context: ./code-reciever-backernd
+      dockerfile: Dockerfile.node
+    container_name: codenode
+    restart: always
+    networks:
+      - backend-network
+
+  backend:
+    build:
+      context: ./code-server-backernd
+      dockerfile: Dockerfile
+    container_name: backend
+    depends_on:
+      - codec
+      - codenode
+      - codejava
+      - codepython
+      - codego
+
+    ports:
+      - "5000:5000"
+    restart: always
+    networks:
+      - backend-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container_ide
+    restart: always
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - db
+    networks:
+      - backend-network
+  
+  redis:
+    image: redis:latest
+    container_name: redis_ide_container
+    ports:
+      - 6379:6379
+    restart: always
+    networks:
+      - backend-network
+    volumes:
+      - redis-data:/data
+
+
+
+networks:
+  backend-network:
+
+
+volumes:
+  pgdata:
+  redis-data:
+
